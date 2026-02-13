@@ -10,11 +10,71 @@ var grid_size = 12
 
 
 func _ready():
+	print("Main _ready")
 	setup_floor()
 	setup_placement_preview()
 	GameManager.funds_changed.connect(_update_ui)
 	GameManager.open_inventory.connect(_on_open_inventory)
 	_update_ui(GameManager.funds)
+	_update_bin()
+
+	# Start with some freezers
+	setup_starting_world()
+
+
+func setup_starting_world():
+	# Freezer 1: Empty
+	_spawn_freezer(Vector2i(-2, 0), StorageModels.Freezer.new("Starter Freezer A"))
+
+	# Freezer 2: Partially filled
+	var f2 = StorageModels.Freezer.new("Main Biorepository")
+	var r1 = StorageModels.Rack.new("Rack-01")
+	var b1 = StorageModels.Box.new("Blood Samples")
+	b1.vials[0] = StorageModels.Vial.new("Patient-A-001")
+	b1.vials[1] = StorageModels.Vial.new("Patient-A-002")
+	r1.boxes[0] = b1
+	f2.racks[0] = r1
+	_spawn_freezer(Vector2i(0, 0), f2)
+
+	# Freezer 3: High Priority
+	var f3 = StorageModels.Freezer.new("Cryo-Vault")
+	var r_hp = StorageModels.Rack.new("HP-Rack")
+	var b_hp = StorageModels.Box.new("Rare Specimen")
+	b_hp.vials[40] = StorageModels.Vial.new("OMEGA-99")
+	r_hp.boxes[12] = b_hp
+	f3.racks[5] = r_hp
+	_spawn_freezer(Vector2i(2, 0), f3)
+
+	# Initial Bin contents
+	GameManager.bin.append(StorageModels.Vial.new("New Arrival-01"))
+	GameManager.bin.append(StorageModels.Vial.new("Pending-A-4"))
+	_update_bin()
+
+
+func _update_bin():
+	for child in bin_list.get_children():
+		child.queue_free()
+
+	for i in range(GameManager.bin.size()):
+		var btn = Button.new()
+		var specimen = GameManager.bin[i]
+		btn.text = specimen.sample_name
+		btn.theme_type_variation = "Button"
+		btn.add_theme_font_size_override("font_size", 12)
+
+		if GameManager.selected_bin_index == i:
+			btn.modulate = Color(1.5, 1.5, 0.5)  # Highlight yellow
+
+		btn.pressed.connect(_on_bin_item_pressed.bind(i))
+		bin_list.add_child(btn)
+
+
+func _on_bin_item_pressed(index):
+	if GameManager.selected_bin_index == index:
+		GameManager.selected_bin_index = -1
+	else:
+		GameManager.selected_bin_index = index
+	_update_bin()
 
 	# Start with some freezers
 	setup_starting_world()
@@ -143,6 +203,7 @@ func _unhandled_input(event):
 
 
 func place_item(tile_pos):
+	print("place_item called")
 	if GameManager.buy_freezer():
 		_spawn_freezer(tile_pos, StorageModels.Freezer.new("Model-X Freezer"))
 		GameManager.building_mode = false

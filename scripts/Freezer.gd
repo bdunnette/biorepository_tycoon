@@ -48,3 +48,4 @@ func handle_click(event):
 
 	if event.button_index == MOUSE_BUTTON_LEFT:
 		GameManager.open_inventory.emit(storage_data)
+		get_viewport().set_input_as_handled()

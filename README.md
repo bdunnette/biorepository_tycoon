@@ -18,3 +18,12 @@ An isometric management game built with Godot 4.2.
 
 ## Setup
 To open this project, launch **Godot Engine 4.2+** and select **Import**, then browse to the `project.godot` file in this directory.
+
+## Web Viewing
+This project is configured to automatically build and deploy to **GitHub Pages** whenever you push to the `main` or `master` branches.
+
+To view the web version:
+1. Ensure GitHub Actions is enabled for your repository.
+2. Go to repository **Settings > Pages**.
+3. Set the **Source** to "GitHub Actions".
+4. Once the "Build and Deploy Web" workflow finishes, your game will be live!
