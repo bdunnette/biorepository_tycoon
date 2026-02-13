@@ -1,6 +1,6 @@
 # Biorepository Tycoon
 
-An isometric management game built with Godot 4.2.
+An isometric management game built with Godot 4.6.
 
 ## How to Play
 1.  **Buy Freezers**: Click the button at the bottom to enter building mode, then click on the grid to place a freezer ($1000).
@@ -17,7 +17,7 @@ An isometric management game built with Godot 4.2.
 - `project.godot`: Main project configuration.
 
 ## Setup
-To open this project, launch **Godot Engine 4.2+** and select **Import**, then browse to the `project.godot` file in this directory.
+To open this project, launch **Godot Engine 4.6+** and select **Import**, then browse to the `project.godot` file in this directory.
 
 ## Web Viewing
 This project is configured to automatically build and deploy to **GitHub Pages** whenever you push to the `main` or `master` branches.
