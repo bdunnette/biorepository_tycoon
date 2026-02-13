@@ -7,14 +7,75 @@ var grid_size = 12
 @onready var placement_preview = $PlacementPreview
 @onready var tile_map = $TileMap
 @onready var inventory_ui = $CanvasLayer/InventoryUI
+@onready var bin_list = $CanvasLayer/UI/Bin/VBoxContainer/ScrollContainer/BinList
 
 
 func _ready():
+	print("Main _ready")
 	setup_floor()
 	setup_placement_preview()
 	GameManager.funds_changed.connect(_update_ui)
 	GameManager.open_inventory.connect(_on_open_inventory)
 	_update_ui(GameManager.funds)
+	_update_bin()
+
+	# Start with some freezers
+	setup_starting_world()
+
+
+func setup_starting_world():
+	# Freezer 1: Empty
+	_spawn_freezer(Vector2i(-2, 0), StorageModels.Freezer.new("Starter Freezer A"))
+
+	# Freezer 2: Partially filled
+	var f2 = StorageModels.Freezer.new("Main Biorepository")
+	var r1 = StorageModels.Rack.new("Rack-01")
+	var b1 = StorageModels.Box.new("Blood Samples")
+	b1.vials[0] = StorageModels.Vial.new("Patient-A-001")
+	b1.vials[1] = StorageModels.Vial.new("Patient-A-002")
+	r1.boxes[0] = b1
+	f2.racks[0] = r1
+	_spawn_freezer(Vector2i(0, 0), f2)
+
+	# Freezer 3: High Priority
+	var f3 = StorageModels.Freezer.new("Cryo-Vault")
+	var r_hp = StorageModels.Rack.new("HP-Rack")
+	var b_hp = StorageModels.Box.new("Rare Specimen")
+	b_hp.vials[40] = StorageModels.Vial.new("OMEGA-99")
+	r_hp.boxes[12] = b_hp
+	f3.racks[5] = r_hp
+	_spawn_freezer(Vector2i(2, 0), f3)
+
+	# Initial Bin contents
+	GameManager.bin.append(StorageModels.Vial.new("New Arrival-01"))
+	GameManager.bin.append(StorageModels.Vial.new("Pending-A-4"))
+	_update_bin()
+
+
+func _update_bin():
+	for child in bin_list.get_children():
+		child.queue_free()
+
+	for i in range(GameManager.bin.size()):
+		var btn = Button.new()
+		var specimen = GameManager.bin[i]
+		btn.text = specimen.sample_name
+		btn.theme_type_variation = "Button"
+		btn.add_theme_font_size_override("font_size", 12)
+
+		if GameManager.selected_bin_index == i:
+			btn.modulate = Color(1.5, 1.5, 0.5)  # Highlight yellow
+
+		btn.pressed.connect(_on_bin_item_pressed.bind(i))
+		bin_list.add_child(btn)
+
+
+func _on_bin_item_pressed(index):
+	if GameManager.selected_bin_index == index:
+		GameManager.selected_bin_index = -1
+	else:
+		GameManager.selected_bin_index = index
+	_update_bin()
 
 
 func setup_placement_preview():
@@ -68,27 +129,37 @@ func _process(_delta):
 		var tile_pos = tile_map.local_to_map(mouse_pos)
 		placement_preview.global_position = tile_map.map_to_local(tile_pos)
 		placement_preview.visible = true
-
-		# Check if already occupied (simple check)
-		placement_preview.modulate = Color(0.5, 1, 0.5, 0.6)  # Green tint
-
-		if (
-			Input.is_action_just_pressed("ui_accept")
-			or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
-		):
-			place_item(tile_pos)
+		placement_preview.modulate = Color(0.5, 1, 0.5, 0.8)
 	else:
 		placement_preview.visible = false
 
 
+func _unhandled_input(event):
+	if building_mode and event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			print("Attempting to place freezer at tile...")
+			var mouse_pos = get_global_mouse_position()
+			var tile_pos = tile_map.local_to_map(mouse_pos)
+			place_item(tile_pos)
+			get_viewport().set_input_as_handled()
+
+
 func place_item(tile_pos):
+	print("place_item called")
 	if GameManager.buy_freezer():
-		var new_freezer = preload("res://scenes/Freezer.tscn").instantiate()
-		add_child(new_freezer)
-		new_freezer.position = tile_map.map_to_local(tile_pos)
+		print("Funds check passed. Instantiating freezer.")
+		_spawn_freezer(tile_pos, StorageModels.Freezer.new("Model-X Freezer"))
 		building_mode = false
 	else:
-		print("Not enough funds!")
+		print("Placement failed: Not enough funds. Current: ", GameManager.funds)
+
+
+func _spawn_freezer(tile_pos: Vector2i, storage_data: StorageModels.Freezer):
+	var new_freezer = preload("res://scenes/Freezer.tscn").instantiate()
+	new_freezer.storage_data = storage_data
+	add_child(new_freezer)
+	new_freezer.global_position = tile_map.map_to_local(tile_pos)
+	print("Freezer '", storage_data.name, "' spawned at: ", new_freezer.global_position)
 
 
 func _update_ui(funds):
@@ -97,3 +168,7 @@ func _update_ui(funds):
 
 func _on_buy_freezer_pressed():
 	building_mode = !building_mode
+	print("Building mode toggled: ", building_mode)
+	if building_mode:
+		# Ensure we're not accidentally opening inventory when clicking the button
+		get_viewport().set_input_as_handled()
