@@ -1,0 +1,24 @@
+[gd_scene load_steps=2 format=3 uid="uid://b2v8p6c5y7x1"]
+
+[ext_resource type="Script" path="res://scripts/Freezer.gd" id="1_freezer"]
+
+[node name="Freezer" type="Area2D"]
+script = ExtResource("1_freezer")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
+polygon = PackedVector2Array(0, -32, 64, 0, 0, 32, -64, 0)
+
+[node name="Visual" type="Node2D" parent="."]
+position = Vector2(0, -20)
+
+[node name="Top" type="Polygon2D" parent="Visual"]
+color = Color(0.8, 0.85, 0.9, 1)
+polygon = PackedVector2Array(0, -32, 64, 0, 0, 32, -64, 0)
+
+[node name="SideLeft" type="Polygon2D" parent="Visual"]
+color = Color(0.6, 0.65, 0.7, 1)
+polygon = PackedVector2Array(0, 32, -64, 0, -64, 64, 0, 96)
+
+[node name="SideRight" type="Polygon2D" parent="Visual"]
+color = Color(0.5, 0.55, 0.6, 1)
+polygon = PackedVector2Array(0, 32, 64, 0, 64, 64, 0, 96)
