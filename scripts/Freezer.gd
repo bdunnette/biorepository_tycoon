@@ -31,12 +31,13 @@ func _on_input_event(_viewport, event, _shape_idx):
 
 func _input(event):
 	# Fallback if pickable system is blocked but event reaches node
-	# Only process if the event wasn't already handled
+	# Only process if the event wasn't already handled by _on_input_event
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if not event.is_pressed():  # Event was consumed
-			return
 		var local_pos = to_local(get_global_mouse_position())
 		if Geometry2D.is_point_in_polygon(local_pos, $CollisionPolygon2D.polygon):
+			# Don't process if this is during building mode or if viewport is handling GUI
+			if GameManager.building_mode or get_viewport().gui_is_dragging():
+				return
 			handle_click(event)
 			get_viewport().set_input_as_handled()
 

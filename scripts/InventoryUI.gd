@@ -150,7 +150,6 @@ func _show_picker():
 	# If there is nothing to pick, do not show the picker panel
 	if GameManager.bin.size() == 0:
 		picker_panel.visible = false
-		print("Bin is empty!")
 		return
 
 	picker_panel.visible = true
