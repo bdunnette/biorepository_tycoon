@@ -20,9 +20,24 @@ jobs:
       - name: Setup Godot
         uses: chickensoft-games/setup-godot@v2
         with:
-          version: 4.6.0
+          version: 4.6
           use-dotnet: false
           download-templates: true
+
+      - name: Check Templates
+        run: ls -R /home/runner/.local/share/godot/export_templates/
+
+      - name: Manual Template Fix
+        run: |
+          TEMPLATE_DIR="/home/runner/.local/share/godot/export_templates/4.6.stable"
+          if [ -d "$TEMPLATE_DIR" ]; then
+            cd "$TEMPLATE_DIR"
+            # In Godot 4.3+, templates might be named web_debug.zip or web_nothreads_debug.zip
+            # If the exporter expects nothreads but it's not there, provide it
+            [ ! -f web_nothreads_debug.zip ] && [ -f web_debug.zip ] && cp web_debug.zip web_nothreads_debug.zip
+            [ ! -f web_nothreads_release.zip ] && [ -f web_release.zip ] && cp web_release.zip web_nothreads_release.zip
+            echo "Templates verified in $TEMPLATE_DIR"
+          fi
 
       - name: Export Web
         run: |
