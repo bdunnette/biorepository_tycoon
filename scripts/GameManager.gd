@@ -3,8 +3,9 @@ extends Node
 signal funds_changed(new_funds)
 signal open_inventory(object)
 
-var bin: Array = []
+var bin: Array[StorageModels.Vial] = []
 var selected_bin_index: int = -1
+var building_mode: bool = false
 var funds: int = 5000:
 	set(value):
 		funds = value

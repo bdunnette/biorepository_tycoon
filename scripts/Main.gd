@@ -1,6 +1,5 @@
 extends Node2D
 
-var building_mode = false
 var grid_size = 12
 
 @onready var ui_funds_label = $CanvasLayer/UI/Stats
@@ -11,13 +10,11 @@ var grid_size = 12
 
 
 func _ready():
-	print("Main _ready")
 	setup_floor()
 	setup_placement_preview()
 	GameManager.funds_changed.connect(_update_ui)
 	GameManager.open_inventory.connect(_on_open_inventory)
 	_update_ui(GameManager.funds)
-	_update_bin()
 
 	# Start with some freezers
 	setup_starting_world()
@@ -59,6 +56,8 @@ func _update_bin():
 	for i in range(GameManager.bin.size()):
 		var btn = Button.new()
 		var specimen = GameManager.bin[i]
+		if specimen == null:
+			continue
 		btn.text = specimen.sample_name
 		btn.theme_type_variation = "Button"
 		btn.add_theme_font_size_override("font_size", 12)
@@ -124,7 +123,7 @@ func _on_open_inventory(object):
 
 
 func _process(_delta):
-	if building_mode:
+	if GameManager.building_mode:
 		var mouse_pos = get_global_mouse_position()
 		var tile_pos = tile_map.local_to_map(mouse_pos)
 		placement_preview.global_position = tile_map.map_to_local(tile_pos)
@@ -135,9 +134,8 @@ func _process(_delta):
 
 
 func _unhandled_input(event):
-	if building_mode and event is InputEventMouseButton and event.pressed:
+	if GameManager.building_mode and event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
-			print("Attempting to place freezer at tile...")
 			var mouse_pos = get_global_mouse_position()
 			var tile_pos = tile_map.local_to_map(mouse_pos)
 			place_item(tile_pos)
@@ -145,13 +143,9 @@ func _unhandled_input(event):
 
 
 func place_item(tile_pos):
-	print("place_item called")
 	if GameManager.buy_freezer():
-		print("Funds check passed. Instantiating freezer.")
 		_spawn_freezer(tile_pos, StorageModels.Freezer.new("Model-X Freezer"))
-		building_mode = false
-	else:
-		print("Placement failed: Not enough funds. Current: ", GameManager.funds)
+		GameManager.building_mode = false
 
 
 func _spawn_freezer(tile_pos: Vector2i, storage_data: StorageModels.Freezer):
@@ -159,7 +153,6 @@ func _spawn_freezer(tile_pos: Vector2i, storage_data: StorageModels.Freezer):
 	new_freezer.storage_data = storage_data
 	add_child(new_freezer)
 	new_freezer.global_position = tile_map.map_to_local(tile_pos)
-	print("Freezer '", storage_data.name, "' spawned at: ", new_freezer.global_position)
 
 
 func _update_ui(funds):
@@ -167,8 +160,7 @@ func _update_ui(funds):
 
 
 func _on_buy_freezer_pressed():
-	building_mode = !building_mode
-	print("Building mode toggled: ", building_mode)
-	if building_mode:
+	GameManager.building_mode = !GameManager.building_mode
+	if GameManager.building_mode:
 		# Ensure we're not accidentally opening inventory when clicking the button
 		get_viewport().set_input_as_handled()

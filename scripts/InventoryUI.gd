@@ -1,4 +1,7 @@
 extends Control
+
+const VIAL_RETRIEVAL_REWARD = 50
+
 var current_view_level = "freezer"  # "freezer", "rack", "box"
 var current_parent_object = null
 var history = []
@@ -16,7 +19,11 @@ var active_slot_index = -1
 func _ready():
 	visible = false
 	back_button.pressed.connect(_on_back_pressed)
-	cancel_picker_button.pressed.connect(func(): picker_panel.visible = false)
+	cancel_picker_button.pressed.connect(
+		func():
+			picker_panel.visible = false
+			active_slot_index = -1
+	)
 
 
 func _input(event):
@@ -72,20 +79,30 @@ func _populate_grid(items, type):
 		else:
 			btn.pressed.connect(_on_empty_slot_clicked.bind(i))
 			if current_view_level == "box":
-				btn.tooltip_text = "Click to place from Bin or buy new"
+				btn.tooltip_text = "Click to place from Bin"
 
 
 func _on_retrieve_clicked(index):
-	var specimen = current_parent_object.vials[index]
+	if current_parent_object == null:
+		return
+
+	if not ("vials" in current_parent_object):
+		return
+
+	var vials = current_parent_object.vials
+	if index < 0 or index >= vials.size():
+		return
+
+	var specimen = vials[index]
+	if specimen == null:
+		return
+
 	GameManager.bin.append(specimen)
-	current_parent_object.vials[index] = null
+	vials[index] = null
 
-	GameManager.funds += 50  # Reward for retrieving/processing?
+	GameManager.funds += VIAL_RETRIEVAL_REWARD
 
-	# Update Main UI Bin
-	var main = get_tree().current_scene
-	if main and main.has_method("_update_bin"):
-		main._update_bin()
+	_notify_bin_changed()
 
 	_show_contents(current_parent_object)
 
@@ -126,16 +143,17 @@ func _on_empty_slot_clicked(index):
 
 
 func _show_picker():
-	picker_panel.visible = true
 	# Clear picker grid
 	for child in picker_grid.get_children():
 		child.queue_free()
 
+	# If there is nothing to pick, do not show the picker panel
 	if GameManager.bin.size() == 0:
-		var lbl = Label.new()
-		lbl.text = "Bin is empty!"
-		picker_grid.add_child(lbl)
+		picker_panel.visible = false
+		print("Bin is empty!")
 		return
+
+	picker_panel.visible = true
 
 	for i in range(GameManager.bin.size()):
 		var btn = Button.new()
@@ -147,15 +165,34 @@ func _show_picker():
 
 
 func _on_bin_item_selected(bin_index):
+	# Validate bin index
+	if bin_index < 0 or bin_index >= GameManager.bin.size():
+		return
+
+	# Validate current parent object and active slot index
+	if current_parent_object == null:
+		return
+	if active_slot_index < 0:
+		return
+	if not current_parent_object.has("vials"):
+		return
+	if active_slot_index >= current_parent_object.vials.size():
+		return
+
 	var specimen = GameManager.bin[bin_index]
 	GameManager.bin.remove_at(bin_index)
 	current_parent_object.vials[active_slot_index] = specimen
 
 	picker_panel.visible = false
+	active_slot_index = -1
 
+	_notify_bin_changed()
+
+	_show_contents(current_parent_object)
+
+
+func _notify_bin_changed():
 	# Update Main UI Bin
 	var main = get_tree().current_scene
 	if main and main.has_method("_update_bin"):
 		main._update_bin()
-
-	_show_contents(current_parent_object)

@@ -37,14 +37,9 @@ func _input(event):
 
 
 func handle_click(event):
-	var main_node = get_tree().current_scene
-	var building_mode = main_node.get("building_mode") if main_node else false
-
-	if building_mode:
-		print("Freezer interaction ignored: Building mode is active.")
+	if GameManager.building_mode:
 		return
 
 	if event.button_index == MOUSE_BUTTON_LEFT:
-		print("Opening inventory for: ", storage_data.name)
 		GameManager.open_inventory.emit(storage_data)
 		get_viewport().set_input_as_handled()
